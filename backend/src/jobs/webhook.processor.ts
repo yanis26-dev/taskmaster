@@ -3,7 +3,6 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { QUEUE_WEBHOOK } from './queue-names';
 import { PrismaService } from '../common/prisma/prisma.service';
-import { TasksService } from '../tasks/tasks.service';
 import { AuthService } from '../auth/auth.service';
 import { TaskStatus, TaskSource } from '@prisma/client';
 
@@ -28,7 +27,6 @@ export class WebhookProcessor extends WorkerHost {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly tasksService: TasksService,
     private readonly authService: AuthService,
   ) {
     super();
@@ -77,27 +75,30 @@ export class WebhookProcessor extends WorkerHost {
       return;
     }
 
-    // Create new task
-    await this.tasksService.create(userId, {
-      title: `Email: ${message.subject ?? '(No subject)'}`,
-      notes: `**From:** ${message.from?.emailAddress?.address ?? 'unknown'}\n\n${message.bodyPreview ?? ''}`,
-      status: 'next' as TaskStatus,
-      priority: 'P2',
-      source: TaskSource.outlook_email,
-    });
+    // 'updated' with no existing task = nothing to do (avoids duplicate from concurrent created+updated notifications)
+    if (changeType === 'updated') return;
 
-    // Attach external ref via raw update (bypassing DTO)
-    await this.prisma.task.updateMany({
-      where: { userId, source: TaskSource.outlook_email, externalId: null },
-      data: {
-        externalProvider: 'microsoft_graph',
-        externalType: 'mail_message',
-        externalId: messageId,
-        externalUrl: `https://outlook.office365.com/mail/deeplink/compose/${messageId}`,
-      },
-    });
-
-    this.logger.log(`Created task from email ${messageId} for user ${userId}`);
+    try {
+      await this.prisma.task.create({
+        data: {
+          userId,
+          title: `Email: ${message.subject ?? '(No subject)'}`,
+          notes: `**From:** ${message.from?.emailAddress?.address ?? 'unknown'}\n\n${message.bodyPreview ?? ''}`,
+          status: TaskStatus.next,
+          priority: 'P2',
+          source: TaskSource.outlook_email,
+          externalProvider: 'microsoft_graph',
+          externalType: 'mail_message',
+          externalId: messageId,
+          externalUrl: `https://outlook.office365.com/mail/deeplink/compose/${messageId}`,
+        },
+      });
+      this.logger.log(`Created task from email ${messageId} for user ${userId}`);
+    } catch (e: any) {
+      if (e?.code !== 'P2002') throw e;
+      // Unique constraint violation — concurrent job already created this task
+      this.logger.warn(`Task for email ${messageId} already created by concurrent job, skipping`);
+    }
   }
 
   // ── Calendar → Task ──────────────────────────────────────────────────────

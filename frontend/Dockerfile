@@ -10,6 +10,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+ARG BACKEND_INTERNAL_URL
+ENV BACKEND_INTERNAL_URL=$BACKEND_INTERNAL_URL
 RUN npm run build
 
 FROM base AS production

@@ -2,13 +2,17 @@
 const nextConfig = {
   output: "standalone",
 
-  // Proxy API requests to backend (works in prod too, if BACKEND_INTERNAL_URL is set)
   async rewrites() {
-    const base =
-      process.env.BACKEND_INTERNAL_URL ??
-      "http://localhost:3001";
+    const base = process.env.BACKEND_INTERNAL_URL ?? "http://localhost:3001";
 
     return [
+      // ✅ Let NextAuth stay on the frontend (do NOT proxy these)
+      {
+        source: "/api/auth/:path*",
+        destination: "/api/auth/:path*",
+      },
+
+      // ✅ Proxy everything else under /api to backend
       {
         source: "/api/:path*",
         destination: `${base}/api/:path*`,

@@ -1,17 +1,16 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckSquare } from 'lucide-react';
 
-export default function AuthCallbackPage() {
+function AuthCallbackInner() {
   const router = useRouter();
   const params = useSearchParams();
   const success = params.get('success');
 
   useEffect(() => {
     if (success === 'true') {
-      // Short delay for smooth UX, then redirect to app
       const t = setTimeout(() => router.replace('/today'), 800);
       return () => clearTimeout(t);
     } else {
@@ -26,5 +25,13 @@ export default function AuthCallbackPage() {
         <p className="text-gray-600 dark:text-gray-400">Signing you in…</p>
       </div>
     </div>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense>
+      <AuthCallbackInner />
+    </Suspense>
   );
 }

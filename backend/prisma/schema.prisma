@@ -1,0 +1,236 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────────────
+
+enum TaskStatus {
+  backlog
+  next
+  in_progress
+  waiting
+  done
+  canceled
+}
+
+enum TaskPriority {
+  P0
+  P1
+  P2
+  P3
+}
+
+enum TaskSource {
+  manual
+  outlook_email
+  outlook_calendar
+  automation
+}
+
+enum Role {
+  user
+  admin
+}
+
+enum ActivityAction {
+  created
+  updated
+  status_changed
+  completed
+  deleted
+  recurring_spawned
+  external_linked
+  external_missing
+}
+
+// ─── User ────────────────────────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  avatarUrl String?
+
+  role      Role     @default(user)
+
+  // Microsoft identity
+  microsoftId       String?  @unique
+  // Encrypted tokens (AES-256-GCM, base64-encoded ciphertext:iv:authTag)
+  encryptedAccessToken  String?
+  encryptedRefreshToken String?
+  tokenExpiresAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tasks         Task[]
+  projects      Project[]
+  settings      UserSettings?
+  activityLogs  ActivityLog[]
+  subscriptions OutlookSubscription[]
+  refreshTokens RefreshToken[]
+  sentInvitations Invitation[] @relation("InvitedBy")
+}
+
+// ─── Invitation ───────────────────────────────────────────────────────────────
+
+model Invitation {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  invitedById String
+  token       String   @unique @default(uuid())
+  accepted    Boolean  @default(false)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  invitedBy User @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([token])
+}
+
+// ─── RefreshToken (JWT rotation) ─────────────────────────────────────────────
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique  // bcrypt hash of the token
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ─── Project ─────────────────────────────────────────────────────────────────
+
+model Project {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  description String?
+  color       String   @default("#6366f1")  // tailwind indigo-500 hex
+  archived    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks Task[]
+
+  @@index([userId])
+}
+
+// ─── Task ─────────────────────────────────────────────────────────────────────
+
+model Task {
+  id          String       @id @default(uuid())
+  userId      String
+  projectId   String?
+  title       String
+  notes       String?      // Markdown
+  status      TaskStatus   @default(backlog)
+  priority    TaskPriority @default(P2)
+  dueAt       DateTime?
+  startAt     DateTime?
+  completedAt DateTime?
+  tags        String[]     @default([])
+  estimateMinutes Int?
+
+  // Recurrence
+  recurrenceRule    String?   // iCal RRULE string e.g. "FREQ=DAILY;INTERVAL=1"
+  recurrenceParentId String?  // If this is a recurring instance, points to parent
+  lastRecurrenceAt  DateTime? // When last child was spawned
+
+  // External source tracking
+  source      TaskSource   @default(manual)
+  externalProvider String? // e.g. "microsoft_graph"
+  externalType     String? // e.g. "mail_message" | "calendar_event"
+  externalId       String? // The provider's item ID
+  externalUrl      String? // Deep link into Outlook
+  externalMissing  Boolean  @default(false) // true if provider item was deleted
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project          Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  recurrenceParent Task?         @relation("RecurrenceChildren", fields: [recurrenceParentId], references: [id], onDelete: SetNull)
+  recurrenceChildren Task[]      @relation("RecurrenceChildren")
+  activityLogs     ActivityLog[]
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([status])
+  @@index([dueAt])
+  @@index([externalId])
+  // Idempotency index: one task per external item per user
+  @@unique([userId, externalProvider, externalId])
+}
+
+// ─── ActivityLog ──────────────────────────────────────────────────────────────
+
+model ActivityLog {
+  id        String         @id @default(uuid())
+  taskId    String
+  userId    String
+  action    ActivityAction
+  payload   Json?          // Arbitrary diff / metadata
+  createdAt DateTime       @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([userId])
+}
+
+// ─── UserSettings ─────────────────────────────────────────────────────────────
+
+model UserSettings {
+  id     String @id @default(uuid())
+  userId String @unique
+
+  timezone          String  @default("Asia/Jerusalem")
+  // Daily digest
+  digestEnabled     Boolean @default(true)
+  digestTime        String  @default("07:30")  // HH:MM 24h
+
+  // Automations
+  autoEmailToTask     Boolean @default(true)
+  autoCalendarToTask  Boolean @default(true)
+  autoTaskToCalendar  Boolean @default(false)  // Create focus block from task
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── OutlookSubscription ──────────────────────────────────────────────────────
+
+model OutlookSubscription {
+  id             String   @id @default(uuid())
+  userId         String
+  graphSubId     String   @unique  // Microsoft Graph subscription ID
+  resource       String   // e.g. "/me/messages" or "/me/events"
+  changeType     String   // "created,updated,deleted"
+  expiresAt      DateTime
+  clientState    String   // Random secret for HMAC validation
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}

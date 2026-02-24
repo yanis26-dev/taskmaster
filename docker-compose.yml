@@ -1,0 +1,84 @@
+version: '3.9'
+
+services:
+  # ── PostgreSQL ───────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: taskmaster-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: taskmaster
+      POSTGRES_USER: taskmaster
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U taskmaster']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Redis ────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: taskmaster-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ── Backend (NestJS) ─────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: taskmaster-backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://taskmaster:secret@postgres:5432/taskmaster
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - '3001:3001'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      # Hot reload in dev: mount source, exclude node_modules
+      - ./backend/src:/app/src
+      - ./backend/prisma:/app/prisma
+
+  # ── Frontend (Next.js) ───────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: taskmaster-frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001/api
+      # Internal Docker network URL for SSR fetches
+      BACKEND_INTERNAL_URL: http://backend:3001/api
+    ports:
+      - '3000:3000'
+    depends_on:
+      - backend
+
+  # ── Bull Board (Queue UI) ────────────────────────────────────────────────────
+  # Accessible at http://localhost:3001/admin/queues (served by backend)
+
+volumes:
+  postgres_data:
+  redis_data:

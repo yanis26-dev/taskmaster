@@ -49,7 +49,7 @@ export const authApi = {
 
 // ─── Tasks ───────────────────────────────────────────────────────────────────
 
-function buildQuery(params: Record<string, unknown>): string {
+function buildQuery(params: Record<string, unknown> | TaskFilters): string {
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
     if (v === undefined || v === null) continue;

@@ -14,6 +14,15 @@ export interface Project {
   _count?: { tasks: number };
 }
 
+export interface Attachment {
+  id: string;
+  taskId: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+  createdAt: string;
+}
+
 export interface Task {
   id: string;
   userId: string;
@@ -32,6 +41,7 @@ export interface Task {
   source: TaskSource;
   externalUrl?: string;
   externalMissing?: boolean;
+  attachments?: Attachment[];
   createdAt: string;
   updatedAt: string;
 }

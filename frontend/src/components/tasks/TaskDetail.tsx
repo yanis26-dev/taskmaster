@@ -1,14 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTask, useUpdateTask, useTransitionTask, useDeleteTask, useProjects } from '@/hooks/useTasks';
 import { useTaskStore } from '@/store/taskStore';
+import { attachmentsApi } from '@/lib/api';
 import { cn, formatDueDate, PRIORITY_CONFIG, STATUS_CONFIG, COMMON_RRULES, tagColor } from '@/lib/utils';
-import { X, Trash2, ExternalLink, Repeat, Calendar, Clock, Tag, FolderOpen, ChevronDown } from 'lucide-react';
+import { X, Trash2, ExternalLink, Repeat, Calendar, Clock, Tag, FolderOpen, ChevronDown, Paperclip, Download, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { Task, TaskStatus, TaskPriority } from '@/types';
+import { useQueryClient } from '@tanstack/react-query';
+import type { Task, TaskStatus, TaskPriority, Attachment } from '@/types';
 
 export function TaskDetail() {
   const { selectedTaskId, setSelectedTaskId } = useTaskStore();
@@ -323,6 +325,9 @@ function TaskDetailContent({
           </div>
         </div>
 
+        {/* Attachments */}
+        <AttachmentsSection task={task} />
+
         {/* Activity log */}
         {(task as any).activityLogs?.length > 0 && (
           <div>
@@ -348,6 +353,86 @@ function TaskDetailContent({
         </div>
       </div>
     </>
+  );
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function AttachmentsSection({ task }: { task: Task }) {
+  const qc = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const attachments = task.attachments ?? [];
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File must be under 5 MB');
+      return;
+    }
+    setUploading(true);
+    try {
+      await attachmentsApi.upload(task.id, file);
+      qc.invalidateQueries({ queryKey: ['task', task.id] });
+    } catch (err: any) {
+      alert(err.message ?? 'Upload failed');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  }
+
+  async function handleDelete(att: Attachment) {
+    await attachmentsApi.delete(task.id, att.id);
+    qc.invalidateQueries({ queryKey: ['task', task.id] });
+  }
+
+  return (
+    <div>
+      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Attachments</label>
+      <div className="mt-2 space-y-2">
+        {attachments.map((att) => (
+          <div key={att.id} className="flex items-center gap-2 p-2 rounded-lg border border-gray-100 dark:border-gray-800">
+            <Paperclip className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+            <a
+              href={attachmentsApi.downloadUrl(task.id, att.id)}
+              className="flex-1 text-sm text-indigo-600 dark:text-indigo-400 hover:underline truncate"
+            >
+              {att.filename}
+            </a>
+            <span className="text-xs text-gray-400 flex-shrink-0">{formatFileSize(att.size)}</span>
+            <a
+              href={attachmentsApi.downloadUrl(task.id, att.id)}
+              className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              title="Download"
+            >
+              <Download className="h-3.5 w-3.5" />
+            </a>
+            <button
+              onClick={() => handleDelete(att)}
+              className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+              title="Delete"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ))}
+        <input ref={fileInputRef} type="file" className="hidden" onChange={handleUpload} />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading || attachments.length >= 3}
+          className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-40 transition-colors"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          {uploading ? 'Uploading...' : attachments.length >= 3 ? 'Max 3 files' : 'Add file'}
+        </button>
+      </div>
+    </div>
   );
 }
 

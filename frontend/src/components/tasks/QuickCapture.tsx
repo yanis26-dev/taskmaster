@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTaskStore } from '@/store/taskStore';
 import { useCreateTask, useProjects } from '@/hooks/useTasks';
+import { attachmentsApi } from '@/lib/api';
 import { cn, COMMON_RRULES } from '@/lib/utils';
-import { X, CalendarDays, FolderOpen, Tag, Clock, Repeat } from 'lucide-react';
+import { X, CalendarDays, FolderOpen, Tag, Clock, Repeat, Paperclip } from 'lucide-react';
 import type { TaskPriority, TaskStatus } from '@/types';
 
 const PRIORITIES: { value: TaskPriority; label: string; color: string }[] = [
@@ -23,7 +24,8 @@ const STATUSES: { value: TaskStatus; label: string }[] = [
 export function QuickCapture() {
   const { quickCaptureOpen, setQuickCaptureOpen, quickCaptureDefaults } = useTaskStore();
   const titleRef = useRef<HTMLInputElement>(null);
-  const { mutate: createTask, isPending } = useCreateTask();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { mutateAsync: createTask, isPending } = useCreateTask();
   const { data: projects } = useProjects();
 
   const [title, setTitle] = useState('');
@@ -35,6 +37,7 @@ export function QuickCapture() {
   const [tags, setTags] = useState('');
   const [estimateMinutes, setEstimateMinutes] = useState('');
   const [recurrenceRule, setRecurrenceRule] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Apply defaults when opened
@@ -49,29 +52,51 @@ export function QuickCapture() {
       setTags((quickCaptureDefaults.tags ?? []).join(', '));
       setEstimateMinutes(String(quickCaptureDefaults.estimateMinutes ?? ''));
       setRecurrenceRule('');
+      setFiles([]);
       setShowAdvanced(false);
       setTimeout(() => titleRef.current?.focus(), 50);
     }
   }, [quickCaptureOpen, quickCaptureDefaults]);
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const selected = Array.from(e.target.files ?? []);
+    const MAX_SIZE = 5 * 1024 * 1024;
+    const valid = selected.filter((f) => f.size <= MAX_SIZE);
+    setFiles((prev) => [...prev, ...valid].slice(0, 3));
+    e.target.value = '';
+  }
+
+  function removeFile(index: number) {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function formatSize(bytes: number) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) return;
 
-    createTask(
-      {
-        title: title.trim(),
-        notes: notes.trim() || undefined,
-        priority,
-        status,
-        dueAt: dueAt ? new Date(dueAt).toISOString() : undefined,
-        projectId: projectId || undefined,
-        tags: tags ? tags.split(',').map((t) => t.trim()).filter(Boolean) : undefined,
-        estimateMinutes: estimateMinutes ? parseInt(estimateMinutes) : undefined,
-        recurrenceRule: recurrenceRule || undefined,
-      },
-      { onSuccess: () => setQuickCaptureOpen(false) },
-    );
+    const task = await createTask({
+      title: title.trim(),
+      notes: notes.trim() || undefined,
+      priority,
+      status,
+      dueAt: dueAt ? new Date(dueAt).toISOString() : undefined,
+      projectId: projectId || undefined,
+      tags: tags ? tags.split(',').map((t) => t.trim()).filter(Boolean) : undefined,
+      estimateMinutes: estimateMinutes ? parseInt(estimateMinutes) : undefined,
+      recurrenceRule: recurrenceRule || undefined,
+    });
+
+    for (const file of files) {
+      await attachmentsApi.upload(task.id, file);
+    }
+
+    setQuickCaptureOpen(false);
   }
 
   if (!quickCaptureOpen) return null;
@@ -211,6 +236,38 @@ export function QuickCapture() {
                   <option key={r.value} value={r.value}>{r.label}</option>
                 ))}
               </select>
+            </div>
+            <div className="space-y-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={handleFileSelect}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={files.length >= 3}
+                className="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-40"
+              >
+                <Paperclip className="h-3.5 w-3.5 text-gray-400" />
+                {files.length >= 3 ? 'Max 3 files' : 'Attach files (max 5 MB each)'}
+              </button>
+              {files.length > 0 && (
+                <div className="space-y-1">
+                  {files.map((f, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs text-gray-500">
+                      <Paperclip className="h-3 w-3 flex-shrink-0" />
+                      <span className="truncate flex-1">{f.name}</span>
+                      <span className="text-gray-400 flex-shrink-0">{formatSize(f.size)}</span>
+                      <button type="button" onClick={() => removeFile(i)} className="text-gray-400 hover:text-red-500">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -4,7 +4,7 @@
  */
 import type {
   Task, Project, UserSettings, User, OutlookSubscription,
-  AdminUser, Invitation, UserRole,
+  AdminUser, Invitation, UserRole, Attachment,
   CreateTaskInput, UpdateTaskInput, CreateProjectInput, TaskFilters,
 } from '@/types';
 
@@ -131,6 +131,31 @@ export const adminApi = {
   invite: (email: string) => request<Invitation>('/admin/invitations', { method: 'POST', body: JSON.stringify({ email }) }),
   createInviteLink: (email: string) => request<Invitation>('/admin/invitations/link', { method: 'POST', body: JSON.stringify({ email }) }),
   revokeInvitation: (id: string) => request<void>(`/admin/invitations/${id}`, { method: 'DELETE' }),
+};
+
+// ─── Attachments ────────────────────────────────────────────────────────────
+
+export const attachmentsApi = {
+  upload: async (taskId: string, file: File): Promise<Attachment> => {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(`${API}/tasks/${taskId}/attachments`, {
+      method: 'POST',
+      credentials: 'include',
+      body: form,
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({})) as { message?: string };
+      throw new ApiError(res.status, body.message ?? res.statusText);
+    }
+    return res.json() as Promise<Attachment>;
+  },
+
+  downloadUrl: (taskId: string, attachmentId: string) =>
+    `${API}/tasks/${taskId}/attachments/${attachmentId}`,
+
+  delete: (taskId: string, attachmentId: string) =>
+    request<void>(`/tasks/${taskId}/attachments/${attachmentId}`, { method: 'DELETE' }),
 };
 
 export { ApiError };

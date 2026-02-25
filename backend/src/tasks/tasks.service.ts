@@ -137,6 +137,7 @@ export class TasksService {
         project: { select: { id: true, name: true, color: true } },
         activityLogs: { orderBy: { createdAt: 'desc' }, take: 50 },
         recurrenceChildren: { select: { id: true, title: true, status: true, dueAt: true } },
+        attachments: { select: { id: true, taskId: true, filename: true, mimeType: true, size: true, createdAt: true } },
       },
     });
     if (!task) throw new NotFoundException(`Task ${taskId} not found`);

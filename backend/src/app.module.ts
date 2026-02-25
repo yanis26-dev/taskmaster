@@ -9,6 +9,7 @@ import { OutlookModule } from './outlook/outlook.module';
 import { JobsModule } from './jobs/jobs.module';
 import { SettingsModule } from './settings/settings.module';
 import { AdminModule } from './admin/admin.module';
+import { AttachmentsModule } from './attachments/attachments.module';
 import { PrismaModule } from './common/prisma/prisma.module';
 
 @Module({
@@ -37,6 +38,7 @@ import { PrismaModule } from './common/prisma/prisma.module';
     JobsModule,
     SettingsModule,
     AdminModule,
+    AttachmentsModule,
   ],
 })
 export class AppModule {}

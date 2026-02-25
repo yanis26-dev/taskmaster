@@ -166,6 +166,7 @@ model Task {
   recurrenceParent Task?         @relation("RecurrenceChildren", fields: [recurrenceParentId], references: [id], onDelete: SetNull)
   recurrenceChildren Task[]      @relation("RecurrenceChildren")
   activityLogs     ActivityLog[]
+  attachments      Attachment[]
 
   @@index([userId])
   @@index([projectId])
@@ -213,6 +214,22 @@ model UserSettings {
   updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Attachment ──────────────────────────────────────────────────────────────
+
+model Attachment {
+  id        String   @id @default(uuid())
+  taskId    String
+  filename  String
+  mimeType  String
+  size      Int      // bytes
+  data      Bytes    // Binary data stored in PostgreSQL (bytea)
+  createdAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
 }
 
 // ─── OutlookSubscription ──────────────────────────────────────────────────────

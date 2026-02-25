@@ -137,6 +137,51 @@ Bull Board at http://localhost:3001/admin/queues
 
 ---
 
+## Railway Deployment
+
+Both backend and frontend are deployed as separate Railway services.
+
+**Backend service** — NestJS API. Railway sets `PORT` automatically.
+
+**Frontend service** — Next.js standalone build in Docker. Key build args:
+- `BACKEND_INTERNAL_URL` must be passed as a Docker `ARG` so the Next.js `rewrites()` proxy destination is baked in at build time (standalone mode evaluates env vars during build, not at runtime).
+
+**Required env vars (backend):**
+- `DATABASE_URL`, `REDIS_URL`
+- `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID`
+- `AZURE_REDIRECT_URI` — must point to the **frontend proxy** URL (e.g., `https://<frontend>.up.railway.app/api/auth/microsoft/callback`) so cookies set during OAuth stay on the same origin
+- `FRONTEND_URL` — the frontend public URL (used for invite links and CORS)
+- `JWT_SECRET`, `TOKEN_ENCRYPTION_KEY`, `WEBHOOK_CLIENT_STATE_SECRET`
+
+**Required env vars (frontend):**
+- `BACKEND_INTERNAL_URL` — the backend's Railway internal or public URL (used in `next.config.mjs` rewrites)
+
+---
+
+## Admin Portal
+
+Accessible at `/admin` for users with `role: admin`. Features:
+
+- **Add User** — Pre-register accounts with name, email, and role (user/admin). The user signs in later with their Microsoft account, which auto-links via email matching.
+- **Invite by Email** — Send an invitation email via Microsoft Graph. The recipient clicks the link and signs in.
+- **Generate Invite Link** — Create a shareable link without sending an email. Useful when email delivery is unreliable.
+- **Manage Users** — Toggle roles, view task counts, delete users.
+- **Manage Invitations** — View pending invitations, copy links, revoke.
+
+The invite landing page at `/invite?token=...` prompts the user to sign in with Microsoft.
+
+---
+
+## Webhook Deduplication
+
+Outlook Graph notifications can fire multiple events (`created` + `updated`) for a single email flag.
+The webhook processor handles this atomically:
+- Only `created` events produce new tasks; `updated` events for non-existing tasks are ignored.
+- Task creation uses a single `prisma.task.create()` with `externalId` set, protected by the `@@unique([userId, externalProvider, externalId])` DB constraint.
+- If a concurrent job races past the check, the P2002 unique-violation error is caught and the duplicate is silently skipped.
+
+---
+
 ## Project Structure
 
 ```
@@ -148,6 +193,7 @@ taskmaster/
 │   ├── Dockerfile
 │   ├── prisma/schema.prisma
 │   └── src/
+│       ├── admin/              # Admin portal (users, invitations)
 │       ├── auth/               # MS OAuth + JWT
 │       ├── tasks/              # CRUD + recurrence
 │       ├── projects/           # Project CRUD
@@ -158,6 +204,8 @@ taskmaster/
 ├── frontend/                   # Next.js app
 │   └── src/
 │       ├── app/                # App Router pages
+│       │   ├── invite/         # Invite landing page
+│       │   └── (dashboard)/admin/  # Admin portal
 │       ├── components/         # UI components
 │       ├── hooks/              # Custom React hooks
 │       ├── lib/                # API client, utils

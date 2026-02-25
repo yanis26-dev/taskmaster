@@ -32,6 +32,24 @@ export class AuthService {
     const existingUser = await this.prisma.user.findUnique({ where: { microsoftId } });
     const isFirstUser = !existingUser && (await this.prisma.user.count()) === 0;
 
+    // Handle users manually pre-created by an admin (no microsoftId yet, matched by email)
+    if (!existingUser && !isFirstUser) {
+      const preCreated = await this.prisma.user.findUnique({ where: { email } });
+      if (preCreated && !preCreated.microsoftId) {
+        // Link their Microsoft account — role was already set by the admin
+        return this.prisma.user.update({
+          where: { id: preCreated.id },
+          data: {
+            microsoftId,
+            name,
+            encryptedAccessToken: this.crypto.encrypt(accessToken),
+            encryptedRefreshToken: refreshToken ? this.crypto.encrypt(refreshToken) : undefined,
+            tokenExpiresAt,
+          },
+        });
+      }
+    }
+
     // If not first user and not already registered, check for valid invitation
     if (!existingUser && !isFirstUser) {
       const invite = await this.prisma.invitation.findUnique({ where: { email } });

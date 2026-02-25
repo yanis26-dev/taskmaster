@@ -3,7 +3,7 @@ import {
   HttpCode, HttpStatus, BadRequestException, Logger,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { IsEmail, IsEnum } from 'class-validator';
+import { IsEmail, IsEnum, IsString } from 'class-validator';
 import { AdminGuard } from './admin.guard';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { AuthService } from '../auth/auth.service';
@@ -13,6 +13,17 @@ import { Role } from '@prisma/client';
 class InviteDto {
   @IsEmail()
   email!: string;
+}
+
+class CreateUserDto {
+  @IsEmail()
+  email!: string;
+
+  @IsString()
+  name!: string;
+
+  @IsEnum(Role)
+  role!: Role;
 }
 
 class ChangeRoleDto {
@@ -67,6 +78,32 @@ export class AdminController {
   async deleteUser(@Param('id') id: string, @CurrentUser() me: JwtPayload) {
     if (id === me.sub) throw new BadRequestException('Cannot delete yourself');
     await this.prisma.user.delete({ where: { id } });
+  }
+
+  @Post('users')
+  @ApiOperation({ summary: 'Manually create a user account (no Microsoft account created)' })
+  async createUser(@Body() dto: CreateUserDto) {
+    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    if (existing) throw new BadRequestException('A user with this email already exists');
+
+    return this.prisma.user.create({
+      data: {
+        email: dto.email,
+        name: dto.name,
+        role: dto.role,
+        settings: {
+          create: {
+            timezone: process.env.DEFAULT_TIMEZONE ?? 'UTC',
+            digestEnabled: true,
+            digestTime: process.env.DEFAULT_DIGEST_TIME ?? '07:30',
+          },
+        },
+      },
+      select: {
+        id: true, email: true, name: true, role: true, createdAt: true,
+        microsoftId: true, _count: { select: { tasks: true } },
+      },
+    });
   }
 
   // ── Invitations ──────────────────────────────────────────────────────────
@@ -138,6 +175,26 @@ export class AdminController {
       const err = await res.text();
       throw new Error(`Graph sendMail failed: ${err}`);
     }
+  }
+
+  @Post('invitations/link')
+  @ApiOperation({ summary: 'Generate an invite link without sending an email' })
+  async createInviteLink(@Body() dto: InviteDto, @CurrentUser() me: JwtPayload) {
+    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    if (existing) throw new BadRequestException('User already exists with this email');
+
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    const invitation = await this.prisma.invitation.upsert({
+      where: { email: dto.email },
+      update: { expiresAt, accepted: false, invitedById: me.sub },
+      create: { email: dto.email, invitedById: me.sub, expiresAt },
+    });
+
+    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+    const inviteLink = `${frontendUrl}/invite?token=${invitation.token}`;
+
+    return { id: invitation.id, email: invitation.email, expiresAt: invitation.expiresAt, inviteLink };
   }
 
   @Delete('invitations/:id')

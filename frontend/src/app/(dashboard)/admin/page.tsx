@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi, authApi } from '@/lib/api';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Shield, Trash2, UserCheck, Mail, Copy, Check, UserX } from 'lucide-react';
+import { Shield, Trash2, UserCheck, Mail, Copy, Check, UserX, UserPlus, Link } from 'lucide-react';
 import { format } from 'date-fns';
 import type { AdminUser, Invitation } from '@/types';
 import { useRouter } from 'next/navigation';
@@ -12,13 +12,27 @@ import { useRouter } from 'next/navigation';
 export default function AdminPage() {
   const router = useRouter();
   const qc = useQueryClient();
+
+  // Invite by email state
   const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteError, setInviteError] = useState('');
+
+  // Generate link state
+  const [linkEmail, setLinkEmail] = useState('');
+  const [generatedLink, setGeneratedLink] = useState('');
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [linkError, setLinkError] = useState('');
+
+  // Add user manually state
+  const [addName, setAddName] = useState('');
+  const [addEmail, setAddEmail] = useState('');
+  const [addRole, setAddRole] = useState<'user' | 'admin'>('user');
+  const [addError, setAddError] = useState('');
+
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [error, setError] = useState('');
 
   const { data: me } = useQuery({ queryKey: ['me'], queryFn: authApi.getMe });
 
-  // Redirect non-admins
   if (me && me.role !== 'admin') {
     router.push('/today');
     return null;
@@ -46,10 +60,37 @@ export default function AdminPage() {
     mutationFn: (email: string) => adminApi.invite(email),
     onSuccess: () => {
       setInviteEmail('');
-      setError('');
+      setInviteError('');
       qc.invalidateQueries({ queryKey: ['admin-invitations'] });
     },
-    onError: (err: Error) => setError(err.message),
+    onError: (err: Error) => setInviteError(err.message),
+  });
+
+  const { mutate: generateLink, isPending: generatingLink } = useMutation({
+    mutationFn: (email: string) => adminApi.createInviteLink(email),
+    onSuccess: (data) => {
+      const link = data.inviteLink ?? '';
+      setGeneratedLink(link);
+      setLinkError('');
+      navigator.clipboard.writeText(link).then(() => {
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 2000);
+      });
+      qc.invalidateQueries({ queryKey: ['admin-invitations'] });
+    },
+    onError: (err: Error) => setLinkError(err.message),
+  });
+
+  const { mutate: createUser, isPending: creating } = useMutation({
+    mutationFn: () => adminApi.createUser({ email: addEmail, name: addName, role: addRole }),
+    onSuccess: () => {
+      setAddName('');
+      setAddEmail('');
+      setAddRole('user');
+      setAddError('');
+      qc.invalidateQueries({ queryKey: ['admin-users'] });
+    },
+    onError: (err: Error) => setAddError(err.message),
   });
 
   function copyLink(inv: Invitation) {
@@ -64,27 +105,105 @@ export default function AdminPage() {
       <PageHeader icon={<Shield className="h-5 w-5" />} title="Admin Portal" />
 
       <div className="space-y-8">
-        {/* Invite user */}
-        <Section title="Invite User" subtitle="Send an invitation link to grant access to the system">
-          <div className="flex gap-3">
+
+        {/* Add user manually */}
+        <Section title="Add User" subtitle="Pre-register an account — the user signs in with their existing Microsoft account">
+          <div className="flex gap-3 flex-wrap">
+            <input
+              placeholder="Full name"
+              value={addName}
+              onChange={(e) => setAddName(e.target.value)}
+              className="flex-1 min-w-32 text-sm bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700 dark:text-gray-300"
+            />
             <input
               type="email"
               placeholder="colleague@company.com"
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && inviteEmail && sendInvite(inviteEmail)}
-              className="flex-1 text-sm bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700 dark:text-gray-300"
+              value={addEmail}
+              onChange={(e) => setAddEmail(e.target.value)}
+              className="flex-1 min-w-48 text-sm bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700 dark:text-gray-300"
             />
+            <select
+              value={addRole}
+              onChange={(e) => setAddRole(e.target.value as 'user' | 'admin')}
+              className="text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700 dark:text-gray-300"
+            >
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+            </select>
             <button
-              onClick={() => inviteEmail && sendInvite(inviteEmail)}
-              disabled={!inviteEmail || inviting}
+              onClick={() => addName && addEmail && createUser()}
+              disabled={!addName || !addEmail || creating}
               className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
             >
-              <Mail className="h-4 w-4" />
-              {inviting ? 'Inviting…' : 'Send Invite'}
+              <UserPlus className="h-4 w-4" />
+              {creating ? 'Adding…' : 'Add User'}
             </button>
           </div>
-          {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+          {addError && <p className="text-xs text-red-500 mt-2">{addError}</p>}
+        </Section>
+
+        {/* Invite user */}
+        <Section title="Invite User" subtitle="Send an invitation email or generate a link to share manually">
+          <div className="space-y-3">
+            <div className="flex gap-3 flex-wrap">
+              <input
+                type="email"
+                placeholder="colleague@company.com"
+                value={inviteEmail}
+                onChange={(e) => { setInviteEmail(e.target.value); setInviteError(''); }}
+                onKeyDown={(e) => e.key === 'Enter' && inviteEmail && sendInvite(inviteEmail)}
+                className="flex-1 text-sm bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700 dark:text-gray-300"
+              />
+              <button
+                onClick={() => inviteEmail && sendInvite(inviteEmail)}
+                disabled={!inviteEmail || inviting}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+              >
+                <Mail className="h-4 w-4" />
+                {inviting ? 'Sending…' : 'Send Email'}
+              </button>
+            </div>
+            {inviteError && <p className="text-xs text-red-500">{inviteError}</p>}
+
+            <div className="flex items-center gap-2">
+              <div className="h-px flex-1 bg-gray-100 dark:bg-gray-800" />
+              <span className="text-xs text-gray-400">or generate a shareable link</span>
+              <div className="h-px flex-1 bg-gray-100 dark:bg-gray-800" />
+            </div>
+
+            <div className="flex gap-3 flex-wrap">
+              <input
+                type="email"
+                placeholder="colleague@company.com"
+                value={linkEmail}
+                onChange={(e) => { setLinkEmail(e.target.value); setLinkError(''); setGeneratedLink(''); }}
+                className="flex-1 text-sm bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700 dark:text-gray-300"
+              />
+              <button
+                onClick={() => linkEmail && generateLink(linkEmail)}
+                disabled={!linkEmail || generatingLink}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+              >
+                <Link className="h-4 w-4" />
+                {generatingLink ? 'Generating…' : 'Generate Link'}
+              </button>
+            </div>
+            {linkError && <p className="text-xs text-red-500">{linkError}</p>}
+            {generatedLink && (
+              <div className="flex items-center gap-2 p-2.5 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+                {linkCopied
+                  ? <Check className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+                  : <Link className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />}
+                <span className="text-xs text-gray-600 dark:text-gray-400 truncate flex-1 font-mono">{generatedLink}</span>
+                <button
+                  onClick={() => navigator.clipboard.writeText(generatedLink).then(() => { setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000); })}
+                  className="text-xs text-indigo-600 hover:text-indigo-700 font-medium flex-shrink-0"
+                >
+                  {linkCopied ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+            )}
+          </div>
         </Section>
 
         {/* Pending invitations */}
@@ -135,6 +254,8 @@ function UserRow({
   onRoleToggle: () => void;
   onDelete: () => void;
 }) {
+  const isPending = !user.microsoftId;
+
   return (
     <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-800">
       <div className="h-8 w-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-xs font-bold flex-shrink-0">
@@ -142,9 +263,14 @@ function UserRow({
       </div>
 
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{user.name}</p>
           {isMe && <span className="text-xs text-gray-400">(you)</span>}
+          {isPending && (
+            <span className="text-xs bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded-full">
+              pending sign-in
+            </span>
+          )}
         </div>
         <p className="text-xs text-gray-400 truncate">{user.email}</p>
       </div>

@@ -122,11 +122,14 @@ export const outlookApi = {
 
 export const adminApi = {
   listUsers: () => request<AdminUser[]>('/admin/users'),
+  createUser: (data: { email: string; name: string; role: UserRole }) =>
+    request<AdminUser>('/admin/users', { method: 'POST', body: JSON.stringify(data) }),
   changeRole: (id: string, role: UserRole) =>
     request<AdminUser>(`/admin/users/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role }) }),
   deleteUser: (id: string) => request<void>(`/admin/users/${id}`, { method: 'DELETE' }),
   listInvitations: () => request<Invitation[]>('/admin/invitations'),
   invite: (email: string) => request<Invitation>('/admin/invitations', { method: 'POST', body: JSON.stringify({ email }) }),
+  createInviteLink: (email: string) => request<Invitation>('/admin/invitations/link', { method: 'POST', body: JSON.stringify({ email }) }),
   revokeInvitation: (id: string) => request<void>(`/admin/invitations/${id}`, { method: 'DELETE' }),
 };
 

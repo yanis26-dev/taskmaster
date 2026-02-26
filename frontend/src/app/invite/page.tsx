@@ -2,7 +2,7 @@
 
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { CheckSquare } from 'lucide-react';
+import { Icon } from '@/components/ui/Icon';
 
 function InviteContent() {
   const params = useSearchParams();
@@ -11,7 +11,7 @@ function InviteContent() {
   if (!token) {
     return (
       <div className="text-center">
-        <p className="text-gray-500 dark:text-gray-400">This invitation link is invalid.</p>
+        <p className="text-monday-text-secondary">This invitation link is invalid.</p>
       </div>
     );
   }
@@ -19,10 +19,10 @@ function InviteContent() {
   return (
     <div className="text-center space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+        <h2 className="text-xl font-semibold text-monday-text mb-2">
           You have been invited to TaskMaster
         </h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-monday-text-secondary">
           Sign in with your Microsoft account to accept the invitation and get access.
         </p>
       </div>
@@ -40,7 +40,7 @@ function InviteContent() {
         Continue with Microsoft
       </a>
 
-      <p className="text-xs text-gray-400">
+      <p className="text-xs text-monday-text-tertiary">
         Make sure to sign in with the Microsoft account that matches the email this invitation was sent to.
       </p>
     </div>
@@ -49,17 +49,19 @@ function InviteContent() {
 
 export default function InvitePage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-white dark:from-gray-950 dark:to-gray-900">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-monday-surface-secondary to-white">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-4">
-            <CheckSquare className="h-10 w-10 text-indigo-600" />
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">TaskMaster</h1>
+            <div className="h-10 w-10 rounded-lg bg-monday-primary flex items-center justify-center">
+              <Icon icon="solar:checkbox-bold" className="h-5 w-5 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-monday-text">TaskMaster</h1>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-8">
-          <Suspense fallback={<p className="text-center text-sm text-gray-400">Loading…</p>}>
+        <div className="bg-white rounded-2xl shadow-lg border border-monday-border-light p-8">
+          <Suspense fallback={<p className="text-center text-sm text-monday-text-tertiary">Loading...</p>}>
             <InviteContent />
           </Suspense>
         </div>

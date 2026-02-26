@@ -1,14 +1,11 @@
 'use client';
 
 import { use } from 'react';
-import { useProjectTasks, useProjects, useCreateProject } from '@/hooks/useTasks';
+import { useProjectTasks, useProjects } from '@/hooks/useTasks';
 import { TaskList } from '@/components/tasks/TaskList';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { useTaskStore } from '@/store/taskStore';
-import { FolderOpen, Plus } from 'lucide-react';
-import { projectsApi } from '@/lib/api';
-import { useQuery } from '@tanstack/react-query';
-import { useQueryClient } from '@tanstack/react-query';
+import { Icon } from '@/components/ui/Icon';
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -23,7 +20,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     setQuickCaptureOpen(true);
   }
 
-  if (!project) return <div className="animate-pulse h-8 w-40 bg-gray-100 dark:bg-gray-800 rounded" />;
+  if (!project) return <div className="animate-pulse h-8 w-40 bg-monday-surface-secondary rounded" />;
 
   return (
     <div>
@@ -40,17 +37,18 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         actions={
           <button
             onClick={handleNewTask}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-monday-primary hover:bg-monday-primary-selected rounded-lg transition-colors"
           >
-            <Plus className="h-3.5 w-3.5" /> Add task
+            <Icon icon="solar:add-circle-bold" className="h-3.5 w-3.5" /> Add task
           </button>
         }
+        showViewSwitcher
       />
 
       {isLoading ? (
         <div className="space-y-2">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+            <div key={i} className="h-10 bg-monday-surface-secondary rounded-lg animate-pulse" />
           ))}
         </div>
       ) : (

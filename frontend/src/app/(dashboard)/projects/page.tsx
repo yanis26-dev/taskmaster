@@ -3,14 +3,14 @@
 import { useState } from 'react';
 import { useProjects, useCreateProject } from '@/hooks/useTasks';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { FolderOpen, Plus, Archive } from 'lucide-react';
+import { Icon } from '@/components/ui/Icon';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
 const COLORS = [
-  '#6366f1', '#8b5cf6', '#ec4899', '#ef4444',
-  '#f97316', '#eab308', '#22c55e', '#10b981',
-  '#06b6d4', '#3b82f6', '#6b7280',
+  '#0073ea', '#a25ddc', '#e2445c', '#ef4444',
+  '#f97316', '#fdab3d', '#00c875', '#10b981',
+  '#06b6d4', '#579bfc', '#676879',
 ];
 
 export default function ProjectsPage() {
@@ -34,29 +34,29 @@ export default function ProjectsPage() {
   return (
     <div>
       <PageHeader
-        icon={<FolderOpen className="h-5 w-5" />}
+        icon={<Icon icon="solar:folder-open-bold" className="h-5 w-5" />}
         title="Projects"
         badge={active.length > 0 ? String(active.length) : undefined}
         actions={
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-monday-primary hover:bg-monday-primary-hover text-white text-sm font-medium rounded-lg transition-colors"
           >
-            <Plus className="h-3.5 w-3.5" /> New Project
+            <Icon icon="solar:add-circle-bold" className="h-3.5 w-3.5" /> New Project
           </button>
         }
       />
 
       {/* Create form */}
       {showCreate && (
-        <form onSubmit={handleCreate} className="mb-6 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">New Project</h3>
+        <form onSubmit={handleCreate} className="mb-6 p-4 rounded-xl border border-monday-border bg-white">
+          <h3 className="text-sm font-semibold text-monday-text-secondary mb-3">New Project</h3>
           <input
             autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Project name"
-            className="w-full text-sm bg-transparent border-b border-gray-200 dark:border-gray-700 outline-none pb-2 text-gray-900 dark:text-white"
+            className="w-full text-sm bg-transparent border-b border-monday-border-light outline-none pb-2 text-monday-text"
           />
           <div className="flex gap-1.5 mt-3 flex-wrap">
             {COLORS.map((c) => (
@@ -66,7 +66,7 @@ export default function ProjectsPage() {
                 onClick={() => setColor(c)}
                 className={cn(
                   'h-5 w-5 rounded-full transition-transform',
-                  color === c && 'ring-2 ring-offset-2 ring-gray-400 scale-110',
+                  color === c && 'ring-2 ring-offset-2 ring-monday-text-tertiary scale-110',
                 )}
                 style={{ backgroundColor: c }}
               />
@@ -76,14 +76,14 @@ export default function ProjectsPage() {
             <button
               type="submit"
               disabled={!name.trim() || isPending}
-              className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              className="px-3 py-1.5 text-sm bg-monday-primary text-white rounded-lg hover:bg-monday-primary-hover disabled:opacity-50 transition-colors"
             >
               Create
             </button>
             <button
               type="button"
               onClick={() => setShowCreate(false)}
-              className="px-3 py-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+              className="px-3 py-1.5 text-sm text-monday-text-tertiary hover:text-monday-text transition-colors"
             >
               Cancel
             </button>
@@ -94,7 +94,7 @@ export default function ProjectsPage() {
       {isLoading ? (
         <div className="space-y-2">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-16 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse" />
+            <div key={i} className="h-16 bg-monday-surface-secondary rounded-xl animate-pulse" />
           ))}
         </div>
       ) : (
@@ -103,20 +103,20 @@ export default function ProjectsPage() {
             <Link
               key={project.id}
               href={`/projects/${project.id}`}
-              className="flex items-center gap-3 p-4 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="flex items-center gap-3 p-4 rounded-xl border border-monday-border-light hover:border-monday-border bg-white hover:bg-monday-surface-secondary transition-colors"
             >
               <div
                 className="h-8 w-8 rounded-lg flex-shrink-0"
                 style={{ backgroundColor: project.color }}
               />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-900 dark:text-white">{project.name}</p>
+                <p className="text-sm font-medium text-monday-text">{project.name}</p>
                 {project.description && (
-                  <p className="text-xs text-gray-400 truncate">{project.description}</p>
+                  <p className="text-xs text-monday-text-tertiary truncate">{project.description}</p>
                 )}
               </div>
               {project._count?.tasks !== undefined && (
-                <span className="text-xs text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
+                <span className="text-xs text-monday-text-tertiary bg-monday-surface-secondary px-2 py-0.5 rounded-full">
                   {project._count.tasks} tasks
                 </span>
               )}
@@ -125,15 +125,15 @@ export default function ProjectsPage() {
 
           {archived.length > 0 && (
             <details className="mt-6">
-              <summary className="flex items-center gap-2 text-sm text-gray-400 cursor-pointer hover:text-gray-600 dark:hover:text-gray-300">
-                <Archive className="h-3.5 w-3.5" />
+              <summary className="flex items-center gap-2 text-sm text-monday-text-tertiary cursor-pointer hover:text-monday-text-secondary">
+                <Icon icon="solar:archive-bold" className="h-3.5 w-3.5" />
                 Archived ({archived.length})
               </summary>
               <div className="mt-2 space-y-2 opacity-60">
                 {archived.map((project) => (
-                  <Link key={project.id} href={`/projects/${project.id}`} className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 dark:border-gray-800">
+                  <Link key={project.id} href={`/projects/${project.id}`} className="flex items-center gap-3 p-3 rounded-xl border border-monday-border-light">
                     <div className="h-6 w-6 rounded-md" style={{ backgroundColor: project.color }} />
-                    <span className="text-sm text-gray-600 dark:text-gray-400">{project.name}</span>
+                    <span className="text-sm text-monday-text-secondary">{project.name}</span>
                   </Link>
                 ))}
               </div>
@@ -141,8 +141,8 @@ export default function ProjectsPage() {
           )}
 
           {active.length === 0 && !showCreate && (
-            <div className="text-center py-16 text-gray-400">
-              <FolderOpen className="h-12 w-12 mx-auto mb-3 opacity-30" />
+            <div className="text-center py-16 text-monday-text-tertiary">
+              <Icon icon="solar:folder-open-bold" className="h-12 w-12 mx-auto mb-3 opacity-30" />
               <p>No projects yet</p>
             </div>
           )}

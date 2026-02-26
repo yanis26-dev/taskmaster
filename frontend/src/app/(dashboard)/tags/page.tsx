@@ -4,14 +4,13 @@ import { useState } from 'react';
 import { useTasksQuery } from '@/hooks/useTasks';
 import { TaskList } from '@/components/tasks/TaskList';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Tag } from 'lucide-react';
+import { Icon } from '@/components/ui/Icon';
 import { cn, tagColor } from '@/lib/utils';
 
 export default function TagsPage() {
   const { data: allTasks } = useTasksQuery();
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
-  // Collect unique tags and their counts
   const tagCounts = (allTasks ?? []).reduce<Record<string, number>>((acc, task) => {
     task.tags.forEach((tag) => { acc[tag] = (acc[tag] ?? 0) + 1; });
     return acc;
@@ -27,7 +26,7 @@ export default function TagsPage() {
   return (
     <div>
       <PageHeader
-        icon={<Tag className="h-5 w-5" />}
+        icon={<Icon icon="solar:tag-bold" className="h-5 w-5" />}
         title="Tags"
         subtitle="Tasks organized by tag"
       />
@@ -51,14 +50,14 @@ export default function TagsPage() {
         ))}
 
         {sortedTags.length === 0 && (
-          <p className="text-sm text-gray-400">No tags yet. Add tags to tasks to see them here.</p>
+          <p className="text-sm text-monday-text-tertiary">No tags yet. Add tags to tasks to see them here.</p>
         )}
       </div>
 
       {/* Tasks for selected tag */}
       {selectedTag && (
         <div>
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-monday-text-secondary mb-3 flex items-center gap-2">
             <span className={cn('px-2 py-0.5 rounded-full text-xs', tagColor(selectedTag))}>{selectedTag}</span>
             <span>({filteredTasks.length} tasks)</span>
           </h2>

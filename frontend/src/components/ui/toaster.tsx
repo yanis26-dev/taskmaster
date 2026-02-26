@@ -1,10 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { X } from 'lucide-react';
+import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/lib/utils';
 
-// Simple toast implementation without Radix dependency complexity
 interface Toast {
   id: string;
   message: string;
@@ -45,14 +44,14 @@ export function Toaster() {
           key={item.id}
           className={cn(
             'flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg text-sm font-medium min-w-[280px] animate-fade-in',
-            item.type === 'success' && 'bg-green-600 text-white',
-            item.type === 'error' && 'bg-red-600 text-white',
-            item.type === 'info' && 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900',
+            item.type === 'success' && 'bg-monday-status-done text-white',
+            item.type === 'error' && 'bg-[#e2445c] text-white',
+            item.type === 'info' && 'bg-monday-text text-white',
           )}
         >
           <span className="flex-1">{item.message}</span>
           <button onClick={() => { toasts = toasts.filter((t) => t.id !== item.id); notify(listeners, toasts); }}>
-            <X className="h-3.5 w-3.5" />
+            <Icon icon="solar:close-circle-bold" className="h-3.5 w-3.5" />
           </button>
         </div>
       ))}

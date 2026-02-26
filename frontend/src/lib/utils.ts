@@ -32,22 +32,22 @@ export function isOverdue(dateStr?: string): boolean {
 
 // ─── Priority ─────────────────────────────────────────────────────────────────
 
-export const PRIORITY_CONFIG: Record<TaskPriority, { label: string; color: string; bg: string; hex: string }> = {
-  P0: { label: 'Critical', color: 'text-white', bg: 'bg-[#333333]', hex: '#333333' },
-  P1: { label: 'High', color: 'text-white', bg: 'bg-[#401694]', hex: '#401694' },
-  P2: { label: 'Medium', color: 'text-white', bg: 'bg-[#5559df]', hex: '#5559df' },
-  P3: { label: 'Low', color: 'text-white', bg: 'bg-[#579bfc]', hex: '#579bfc' },
+export const PRIORITY_CONFIG: Record<TaskPriority, { label: string; color: string; bg: string }> = {
+  P0: { label: 'P0', color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-950' },
+  P1: { label: 'P1', color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-950' },
+  P2: { label: 'P2', color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-950' },
+  P3: { label: 'P3', color: 'text-gray-500', bg: 'bg-gray-50 dark:bg-gray-900' },
 };
 
 // ─── Status ──────────────────────────────────────────────────────────────────
 
-export const STATUS_CONFIG: Record<TaskStatus, { label: string; color: string; bg: string; hex: string }> = {
-  backlog: { label: 'Not Started', color: 'text-white', bg: 'bg-[#c4c4c4]', hex: '#c4c4c4' },
-  next: { label: 'Next Up', color: 'text-white', bg: 'bg-[#579bfc]', hex: '#579bfc' },
-  in_progress: { label: 'Working on it', color: 'text-monday-text', bg: 'bg-[#fdab3d]', hex: '#fdab3d' },
-  waiting: { label: 'Waiting', color: 'text-white', bg: 'bg-[#a25ddc]', hex: '#a25ddc' },
-  done: { label: 'Done', color: 'text-white', bg: 'bg-[#00c875]', hex: '#00c875' },
-  canceled: { label: 'Canceled', color: 'text-white', bg: 'bg-[#999999]', hex: '#999999' },
+export const STATUS_CONFIG: Record<TaskStatus, { label: string; color: string }> = {
+  backlog: { label: 'Backlog', color: 'text-gray-500' },
+  next: { label: 'Next', color: 'text-blue-600' },
+  in_progress: { label: 'In Progress', color: 'text-yellow-600' },
+  waiting: { label: 'Waiting', color: 'text-purple-600' },
+  done: { label: 'Done', color: 'text-green-600' },
+  canceled: { label: 'Canceled', color: 'text-gray-400' },
 };
 
 export const TERMINAL_STATUSES: TaskStatus[] = ['done', 'canceled'];
@@ -63,27 +63,19 @@ export const COMMON_RRULES = [
   { label: 'Quarterly', value: 'FREQ=MONTHLY;INTERVAL=3' },
 ];
 
-// ─── Tag colors (Monday-style tinted pills) ──────────────────────────────────
+// ─── Tag colors (deterministic from string hash) ──────────────────────────────
 
 const TAG_COLORS = [
-  'bg-[#e2445c]/15 text-[#e2445c]',
-  'bg-[#579bfc]/15 text-[#579bfc]',
-  'bg-[#00c875]/15 text-[#00c875]',
-  'bg-[#fdab3d]/15 text-[#b07a1e]',
-  'bg-[#a25ddc]/15 text-[#a25ddc]',
-  'bg-[#66ccff]/15 text-[#0073ea]',
+  'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200',
+  'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+  'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+  'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200',
+  'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
 ];
 
 export function tagColor(tag: string): string {
   let hash = 0;
   for (let i = 0; i < tag.length; i++) hash = (hash * 31 + tag.charCodeAt(i)) | 0;
   return TAG_COLORS[Math.abs(hash) % TAG_COLORS.length];
-}
-
-// ─── Group header colors (rotating) ──────────────────────────────────────────
-
-const GROUP_COLORS = ['#579bfc', '#00c875', '#a25ddc', '#fdab3d', '#e2445c', '#66ccff'];
-
-export function groupColor(index: number): string {
-  return GROUP_COLORS[index % GROUP_COLORS.length];
 }

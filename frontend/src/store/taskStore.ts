@@ -18,10 +18,6 @@ interface TaskStore {
   searchOpen: boolean;
   setSearchOpen: (open: boolean) => void;
 
-  // View mode
-  viewMode: 'table' | 'kanban' | 'timeline';
-  setViewMode: (mode: 'table' | 'kanban' | 'timeline') => void;
-
   // Current user
   user: User | null;
   setUser: (user: User | null) => void;
@@ -38,9 +34,6 @@ export const useTaskStore = create<TaskStore>((set) => ({
 
   searchOpen: false,
   setSearchOpen: (open) => set({ searchOpen: open }),
-
-  viewMode: 'table',
-  setViewMode: (mode) => set({ viewMode: mode }),
 
   user: null,
   setUser: (user) => set({ user }),

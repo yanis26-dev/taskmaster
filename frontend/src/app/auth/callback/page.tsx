@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Icon } from '@/components/ui/Icon';
+import { CheckSquare } from 'lucide-react';
 
 function AuthCallbackInner() {
   const router = useRouter();
@@ -21,10 +21,8 @@ function AuthCallbackInner() {
   return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
-        <div className="h-12 w-12 rounded-lg bg-monday-primary flex items-center justify-center mx-auto mb-3 animate-bounce">
-          <Icon icon="solar:checkbox-bold" className="h-6 w-6 text-white" />
-        </div>
-        <p className="text-monday-text-secondary">Signing you in...</p>
+        <CheckSquare className="h-12 w-12 text-indigo-600 mx-auto mb-3 animate-bounce" />
+        <p className="text-gray-600 dark:text-gray-400">Signing you in…</p>
       </div>
     </div>
   );

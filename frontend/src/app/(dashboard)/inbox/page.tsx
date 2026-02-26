@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useTasksQuery } from '@/hooks/useTasks';
 import { TaskList } from '@/components/tasks/TaskList';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Icon } from '@/components/ui/Icon';
+import { List } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { TaskStatus } from '@/types';
 
@@ -27,14 +27,13 @@ export default function InboxPage() {
   return (
     <div>
       <PageHeader
-        icon={<Icon icon="solar:list-bold" className="h-5 w-5" />}
+        icon={<List className="h-5 w-5" />}
         title="All Tasks"
         badge={tasks ? String(tasks.length) : undefined}
-        showViewSwitcher
       />
 
       {/* Filter tabs */}
-      <div className="flex gap-1 mb-6 border-b border-monday-border-light">
+      <div className="flex gap-1 mb-6 border-b border-gray-200 dark:border-gray-800">
         {FILTER_TABS.map((f, i) => (
           <button
             key={f.label}
@@ -42,8 +41,8 @@ export default function InboxPage() {
             className={cn(
               'px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
               i === activeTab
-                ? 'border-monday-primary text-monday-primary'
-                : 'border-transparent text-monday-text-secondary hover:text-monday-text',
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300',
             )}
           >
             {f.label}
@@ -54,7 +53,7 @@ export default function InboxPage() {
       {isLoading ? (
         <div className="space-y-2">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-10 bg-monday-surface-secondary rounded-lg animate-pulse" />
+            <div key={i} className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
           ))}
         </div>
       ) : (

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi, authApi } from '@/lib/api';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Icon } from '@/components/ui/Icon';
+import { Shield, Trash2, UserCheck, Mail, Copy, Check, UserX, UserPlus, Link } from 'lucide-react';
 import { format } from 'date-fns';
 import type { AdminUser, Invitation } from '@/types';
 import { useRouter } from 'next/navigation';
@@ -13,14 +13,17 @@ export default function AdminPage() {
   const router = useRouter();
   const qc = useQueryClient();
 
+  // Invite by email state
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteError, setInviteError] = useState('');
 
+  // Generate link state
   const [linkEmail, setLinkEmail] = useState('');
   const [generatedLink, setGeneratedLink] = useState('');
   const [linkCopied, setLinkCopied] = useState(false);
   const [linkError, setLinkError] = useState('');
 
+  // Add user manually state
   const [addName, setAddName] = useState('');
   const [addEmail, setAddEmail] = useState('');
   const [addRole, setAddRole] = useState<'user' | 'admin'>('user');
@@ -99,7 +102,7 @@ export default function AdminPage() {
 
   return (
     <div>
-      <PageHeader icon={<Icon icon="solar:shield-bold" className="h-5 w-5" />} title="Admin Portal" />
+      <PageHeader icon={<Shield className="h-5 w-5" />} title="Admin Portal" />
 
       <div className="space-y-8">
 
@@ -110,19 +113,19 @@ export default function AdminPage() {
               placeholder="Full name"
               value={addName}
               onChange={(e) => setAddName(e.target.value)}
-              className="flex-1 min-w-32 text-sm bg-transparent border border-monday-border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-monday-primary text-monday-text-secondary"
+              className="flex-1 min-w-32 text-sm bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700 dark:text-gray-300"
             />
             <input
               type="email"
               placeholder="colleague@company.com"
               value={addEmail}
               onChange={(e) => setAddEmail(e.target.value)}
-              className="flex-1 min-w-48 text-sm bg-transparent border border-monday-border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-monday-primary text-monday-text-secondary"
+              className="flex-1 min-w-48 text-sm bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700 dark:text-gray-300"
             />
             <select
               value={addRole}
               onChange={(e) => setAddRole(e.target.value as 'user' | 'admin')}
-              className="text-sm bg-white border border-monday-border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-monday-primary text-monday-text-secondary"
+              className="text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700 dark:text-gray-300"
             >
               <option value="user">User</option>
               <option value="admin">Admin</option>
@@ -130,13 +133,13 @@ export default function AdminPage() {
             <button
               onClick={() => addName && addEmail && createUser()}
               disabled={!addName || !addEmail || creating}
-              className="flex items-center gap-2 px-4 py-2 bg-monday-primary hover:bg-monday-primary-hover text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
             >
-              <Icon icon="solar:user-plus-bold" className="h-4 w-4" />
-              {creating ? 'Adding...' : 'Add User'}
+              <UserPlus className="h-4 w-4" />
+              {creating ? 'Adding…' : 'Add User'}
             </button>
           </div>
-          {addError && <p className="text-xs text-[#e2445c] mt-2">{addError}</p>}
+          {addError && <p className="text-xs text-red-500 mt-2">{addError}</p>}
         </Section>
 
         {/* Invite user */}
@@ -149,23 +152,23 @@ export default function AdminPage() {
                 value={inviteEmail}
                 onChange={(e) => { setInviteEmail(e.target.value); setInviteError(''); }}
                 onKeyDown={(e) => e.key === 'Enter' && inviteEmail && sendInvite(inviteEmail)}
-                className="flex-1 text-sm bg-transparent border border-monday-border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-monday-primary text-monday-text-secondary"
+                className="flex-1 text-sm bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700 dark:text-gray-300"
               />
               <button
                 onClick={() => inviteEmail && sendInvite(inviteEmail)}
                 disabled={!inviteEmail || inviting}
-                className="flex items-center gap-2 px-4 py-2 bg-monday-primary hover:bg-monday-primary-hover text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
               >
-                <Icon icon="solar:letter-bold" className="h-4 w-4" />
-                {inviting ? 'Sending...' : 'Send Email'}
+                <Mail className="h-4 w-4" />
+                {inviting ? 'Sending…' : 'Send Email'}
               </button>
             </div>
-            {inviteError && <p className="text-xs text-[#e2445c]">{inviteError}</p>}
+            {inviteError && <p className="text-xs text-red-500">{inviteError}</p>}
 
             <div className="flex items-center gap-2">
-              <div className="h-px flex-1 bg-monday-border-light" />
-              <span className="text-xs text-monday-text-tertiary">or generate a shareable link</span>
-              <div className="h-px flex-1 bg-monday-border-light" />
+              <div className="h-px flex-1 bg-gray-100 dark:bg-gray-800" />
+              <span className="text-xs text-gray-400">or generate a shareable link</span>
+              <div className="h-px flex-1 bg-gray-100 dark:bg-gray-800" />
             </div>
 
             <div className="flex gap-3 flex-wrap">
@@ -174,27 +177,27 @@ export default function AdminPage() {
                 placeholder="colleague@company.com"
                 value={linkEmail}
                 onChange={(e) => { setLinkEmail(e.target.value); setLinkError(''); setGeneratedLink(''); }}
-                className="flex-1 text-sm bg-transparent border border-monday-border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-monday-primary text-monday-text-secondary"
+                className="flex-1 text-sm bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700 dark:text-gray-300"
               />
               <button
                 onClick={() => linkEmail && generateLink(linkEmail)}
                 disabled={!linkEmail || generatingLink}
-                className="flex items-center gap-2 px-4 py-2 bg-monday-text hover:bg-monday-text/90 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
               >
-                <Icon icon="solar:link-bold" className="h-4 w-4" />
-                {generatingLink ? 'Generating...' : 'Generate Link'}
+                <Link className="h-4 w-4" />
+                {generatingLink ? 'Generating…' : 'Generate Link'}
               </button>
             </div>
-            {linkError && <p className="text-xs text-[#e2445c]">{linkError}</p>}
+            {linkError && <p className="text-xs text-red-500">{linkError}</p>}
             {generatedLink && (
-              <div className="flex items-center gap-2 p-2.5 bg-monday-surface-secondary rounded-lg border border-monday-border-light">
+              <div className="flex items-center gap-2 p-2.5 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
                 {linkCopied
-                  ? <Icon icon="solar:check-circle-bold" className="h-3.5 w-3.5 text-monday-status-done flex-shrink-0" />
-                  : <Icon icon="solar:link-bold" className="h-3.5 w-3.5 text-monday-text-tertiary flex-shrink-0" />}
-                <span className="text-xs text-monday-text-secondary truncate flex-1 font-mono">{generatedLink}</span>
+                  ? <Check className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+                  : <Link className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />}
+                <span className="text-xs text-gray-600 dark:text-gray-400 truncate flex-1 font-mono">{generatedLink}</span>
                 <button
                   onClick={() => navigator.clipboard.writeText(generatedLink).then(() => { setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000); })}
-                  className="text-xs text-monday-primary hover:text-monday-primary-hover font-medium flex-shrink-0"
+                  className="text-xs text-indigo-600 hover:text-indigo-700 font-medium flex-shrink-0"
                 >
                   {linkCopied ? 'Copied!' : 'Copy'}
                 </button>
@@ -254,25 +257,25 @@ function UserRow({
   const isPending = !user.microsoftId;
 
   return (
-    <div className="flex items-center gap-3 p-3 rounded-lg border border-monday-border-light">
-      <div className="h-8 w-8 rounded-full bg-monday-primary-selected flex items-center justify-center text-monday-primary text-xs font-bold flex-shrink-0">
+    <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-800">
+      <div className="h-8 w-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-xs font-bold flex-shrink-0">
         {user.name.charAt(0).toUpperCase()}
       </div>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-sm font-medium text-monday-text truncate">{user.name}</p>
-          {isMe && <span className="text-xs text-monday-text-tertiary">(you)</span>}
+          <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{user.name}</p>
+          {isMe && <span className="text-xs text-gray-400">(you)</span>}
           {isPending && (
-            <span className="text-xs bg-monday-status-working/15 text-monday-status-working px-1.5 py-0.5 rounded-full">
+            <span className="text-xs bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded-full">
               pending sign-in
             </span>
           )}
         </div>
-        <p className="text-xs text-monday-text-tertiary truncate">{user.email}</p>
+        <p className="text-xs text-gray-400 truncate">{user.email}</p>
       </div>
 
-      <span className="text-xs text-monday-text-tertiary">{user._count.tasks} tasks</span>
+      <span className="text-xs text-gray-400">{user._count.tasks} tasks</span>
 
       <button
         onClick={onRoleToggle}
@@ -280,11 +283,11 @@ function UserRow({
         title={isMe ? 'Cannot change your own role' : `Make ${user.role === 'admin' ? 'user' : 'admin'}`}
         className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors disabled:opacity-40 ${
           user.role === 'admin'
-            ? 'bg-monday-primary-selected text-monday-primary hover:bg-monday-primary-selected/80'
-            : 'bg-monday-surface-secondary text-monday-text-secondary hover:bg-monday-surface-secondary/80'
+            ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200'
+            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200'
         }`}
       >
-        {user.role === 'admin' ? <Icon icon="solar:shield-bold" className="h-3 w-3" /> : <Icon icon="solar:user-check-bold" className="h-3 w-3" />}
+        {user.role === 'admin' ? <Shield className="h-3 w-3" /> : <UserCheck className="h-3 w-3" />}
         {user.role}
       </button>
 
@@ -292,9 +295,9 @@ function UserRow({
         onClick={onDelete}
         disabled={isMe}
         title={isMe ? 'Cannot delete yourself' : 'Delete user'}
-        className="p-1.5 rounded-md text-monday-text-tertiary hover:text-[#e2445c] hover:bg-[#e2445c]/10 transition-colors disabled:opacity-30"
+        className="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors disabled:opacity-30"
       >
-        <Icon icon="solar:trash-bin-trash-bold" className="h-3.5 w-3.5" />
+        <Trash2 className="h-3.5 w-3.5" />
       </button>
     </div>
   );
@@ -309,26 +312,26 @@ function InvitationRow({
   onRevoke: () => void;
 }) {
   return (
-    <div className="flex items-center gap-3 p-3 rounded-lg border border-dashed border-monday-border">
-      <Icon icon="solar:letter-bold" className="h-4 w-4 text-monday-text-tertiary flex-shrink-0" />
+    <div className="flex items-center gap-3 p-3 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
+      <Mail className="h-4 w-4 text-gray-400 flex-shrink-0" />
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-monday-text-secondary truncate">{inv.email}</p>
-        <p className="text-xs text-monday-text-tertiary">
+        <p className="text-sm text-gray-700 dark:text-gray-300 truncate">{inv.email}</p>
+        <p className="text-xs text-gray-400">
           Expires {format(new Date(inv.expiresAt), 'MMM d, HH:mm')} · invited by {inv.invitedBy.name}
         </p>
       </div>
       <button
         onClick={onCopy}
-        className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md border border-monday-border text-monday-text-secondary hover:bg-monday-surface-secondary transition-colors"
+        className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
       >
-        {copied ? <Icon icon="solar:check-circle-bold" className="h-3 w-3 text-monday-status-done" /> : <Icon icon="solar:copy-bold" className="h-3 w-3" />}
+        {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
         {copied ? 'Copied' : 'Copy link'}
       </button>
       <button
         onClick={onRevoke}
-        className="p-1.5 rounded-md text-monday-text-tertiary hover:text-[#e2445c] hover:bg-[#e2445c]/10 transition-colors"
+        className="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
       >
-        <Icon icon="solar:user-cross-bold" className="h-3.5 w-3.5" />
+        <UserX className="h-3.5 w-3.5" />
       </button>
     </div>
   );
@@ -338,10 +341,10 @@ function Section({ title, subtitle, children }: { title: string; subtitle?: stri
   return (
     <div>
       <div className="mb-4">
-        <h2 className="text-base font-semibold text-monday-text">{title}</h2>
-        {subtitle && <p className="text-sm text-monday-text-tertiary mt-0.5">{subtitle}</p>}
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white">{title}</h2>
+        {subtitle && <p className="text-sm text-gray-400 mt-0.5">{subtitle}</p>}
       </div>
-      <div className="bg-white rounded-xl border border-monday-border-light p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4">
         {children}
       </div>
     </div>
